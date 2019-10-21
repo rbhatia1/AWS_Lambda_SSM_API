@@ -1,0 +1,41 @@
+---
+description: "Automation Document JSON Template"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+parameters:
+  KN:
+    type: "String"
+    description: "Tag Name"
+  KV:
+    type: "String"
+    description: "Tag Value"
+  AutomationAssumeRole:
+    type: "String"
+    description: "(Optional) The ARN of the role that allows Automation to perform\
+      \ the actions on your behalf."
+    default: ""
+mainSteps:
+- name: "invokeLambdaFunction"
+  action: "aws:invokeLambdaFunction"
+  maxAttempts: 3
+  timeoutSeconds: 120
+  onFailure: "Abort"
+  inputs:
+    FunctionName: "AutoTestV2"
+    Payload: "{\"KN\":\"{{KN}}\", \"KV\":\"{{KV}}\"}"
+  nextStep: "invokeRunCommand"
+- name: "invokeRunCommand"
+  action: "aws:runCommand"
+  onFailure: "Abort"
+  maxAttempts: 2
+  timeoutSeconds: 120
+  inputs:
+    DocumentName: "AWS-RunShellScript"
+    Targets:
+    - Key: "tag:{{KN}}"
+      Values:
+      - "{{KV}}"
+    Parameters:
+      commands:
+      - "ls /"
+  isEnd: true
